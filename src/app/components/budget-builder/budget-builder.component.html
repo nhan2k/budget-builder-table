@@ -1,0 +1,527 @@
+<!-- budget-builder.component.html -->
+
+<div class="container mx-auto p-4">
+  <h1 class="text-2xl font-bold mb-6">Budget Builder</h1>
+
+  <!-- Date Range Form -->
+  <form
+    class="mb-6 p-4 bg-gray-50 rounded-lg"
+    (submit)="updateDateRange($event)"
+  >
+    <div class="flex flex-wrap gap-4 items-end">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1"
+          >Start Month</label
+        >
+        <input
+          type="month"
+          name="startMonth"
+          [value]="getMonthInputValue(budgetData().startMonth)"
+          class="border border-gray-300 rounded-md p-2"
+        />
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1"
+          >End Month</label
+        >
+        <input
+          type="month"
+          name="endMonth"
+          [value]="getMonthInputValue(budgetData().endMonth)"
+          class="border border-gray-300 rounded-md p-2"
+        />
+      </div>
+
+      <button
+        type="submit"
+        class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+      >
+        Update Date Range
+      </button>
+    </div>
+  </form>
+
+  <!-- Budget Table -->
+  <div class="overflow-x-auto">
+    <table class="w-full border-collapse">
+      <!-- Table Header -->
+      <thead>
+        <tr class="bg-gray-100">
+          <th class="border border-gray-300 px-4 py-2 text-left w-60">
+            Start Period ▼ End Period ▼
+          </th>
+          <th
+            *ngFor="let month of months()"
+            class="border border-gray-300 px-4 py-2 text-center"
+          >
+            {{ month }}
+          </th>
+        </tr>
+      </thead>
+
+      <!-- Table Body - Income Section -->
+      <tbody>
+        <tr class="bg-blue-50">
+          <td
+            [attr.colspan]="months().length + 1"
+            class="border border-gray-300 px-4 py-2 font-bold"
+          >
+            Income
+          </td>
+        </tr>
+
+        <!-- Income Category Groups -->
+        <ng-container
+          *ngFor="
+            let group of budgetData().income.categoryGroups;
+            trackBy: trackByFn
+          "
+        >
+          <tr class="bg-blue-50">
+            <td class="border border-gray-300 px-4 py-2 font-medium">
+              {{ group.name }}
+            </td>
+            <td
+              *ngFor="let month of months(); let colIndex = index"
+              class="border border-gray-300 p-1 text-right"
+              [ngClass]="{ 'bg-blue-100': group.id === 'general-income' }"
+            >
+              <input
+                *ngIf="group.id === 'general-income'"
+                type="number"
+                [id]="'group-header-' + group.id + '-' + month"
+                [value]="
+                  group.values && group.values[month] ? group.values[month] : 0
+                "
+                (input)="updateGroupHeaderValue(group, month, $event)"
+                (focus)="focusCellByElement($any($event.target))"
+                class="w-full text-right py-1 bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                step="1"
+              />
+              <span *ngIf="group.id !== 'general-income'">
+                <!-- Empty header cell -->
+              </span>
+            </td>
+          </tr>
+
+          <!-- Income Sub-Categories -->
+          <tr
+            *ngFor="let subCategory of group.subCategories; trackBy: trackByFn"
+            class="hover:bg-gray-50"
+          >
+            <td
+              class="border border-gray-300 px-8 py-2 flex items-center justify-between"
+            >
+              <span>{{ subCategory.name }}</span>
+              <button
+                (click)="deleteSubCategory('income', group.id, subCategory.id)"
+                class="text-red-500 hover:text-red-700"
+                title="Delete"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </td>
+            <td
+              *ngFor="let month of months(); let colIndex = index"
+              class="border border-gray-300 p-1 text-right"
+              (contextmenu)="
+                onCellRightClick(
+                  $event,
+                  'income',
+                  group.id,
+                  subCategory.id,
+                  month,
+                  subCategory.values[month]
+                )
+              "
+            >
+              <input
+                type="number"
+                [id]="'income-' + group.id + '-' + subCategory.id + '-' + month"
+                [value]="subCategory.values[month]"
+                (input)="
+                  updateCellValue(
+                    'income',
+                    group.id,
+                    subCategory.id,
+                    month,
+                    $event
+                  )
+                "
+                (focus)="focusCellByElement($any($event.target))"
+                class="w-full text-right py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                step="1"
+              />
+            </td>
+          </tr>
+
+          <!-- Add New Income Category -->
+          <tr *ngIf="editingNewCategory() === 'income-' + group.id">
+            <td class="border border-gray-300 px-8 py-2">
+              <div class="flex">
+                <input
+                  #newCategoryInput
+                  type="text"
+                  [value]="newCategoryName()"
+                  (input)="newCategoryName.set($any($event.target).value)"
+                  class="flex-grow border border-gray-300 rounded-md p-1 mr-2"
+                  placeholder="New category name"
+                />
+                <button
+                  (click)="addNewCategory('income', group.id)"
+                  class="bg-green-500 text-white px-2 py-1 rounded-md hover:bg-green-600"
+                >
+                  Add
+                </button>
+                <button
+                  (click)="cancelAddCategory()"
+                  class="ml-2 bg-gray-300 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+              </div>
+            </td>
+            <td
+              *ngFor="let month of months()"
+              class="border border-gray-300 px-4 py-2"
+            >
+              <!-- Empty cells for new category row -->
+            </td>
+          </tr>
+
+          <!-- Add New Category Button -->
+          <tr *ngIf="editingNewCategory() !== 'income-' + group.id">
+            <td class="border border-gray-300 px-8 py-2">
+              <button
+                (click)="editingNewCategory.set('income-' + group.id)"
+                class="text-blue-500 hover:text-blue-700 text-sm"
+              >
+                + Add a new '{{ group.name }}' Category
+              </button>
+            </td>
+            <td *ngFor="let month of months()" class="border border-gray-300">
+              <!-- Empty cells -->
+            </td>
+          </tr>
+
+          <!-- Sub Total Row -->
+          <tr class="bg-blue-50">
+            <td class="border border-gray-300 px-4 py-2 font-medium">
+              Sub Totals
+            </td>
+            <td
+              *ngFor="let month of months()"
+              class="border border-gray-300 px-4 py-2 text-right font-medium"
+            >
+              {{ getCategoryGroupSubTotal(group, month) }}
+            </td>
+          </tr>
+        </ng-container>
+
+        <!-- Add New Parent Category Group -->
+        <tr>
+          <td class="border border-gray-300 px-4 py-2">
+            <div class="flex items-center">
+              <input
+                type="text"
+                [value]="newCategoryGroupName()"
+                (input)="newCategoryGroupName.set($any($event.target).value)"
+                class="flex-grow border border-gray-300 rounded-md p-1 mr-2"
+                placeholder="New category group name"
+              />
+              <button
+                (click)="addNewCategoryGroup('income')"
+                class="bg-green-500 text-white px-2 py-1 rounded-md hover:bg-green-600"
+              >
+                Add New Parent Category
+              </button>
+            </div>
+          </td>
+          <td *ngFor="let month of months()" class="border border-gray-300">
+            <!-- Empty cells -->
+          </td>
+        </tr>
+
+        <!-- Income Total Row -->
+        <tr class="bg-blue-100">
+          <td class="border border-gray-300 px-4 py-2 font-bold">
+            Income Total
+          </td>
+          <td
+            *ngFor="let month of months()"
+            class="border border-gray-300 px-4 py-2 text-right font-bold"
+          >
+            {{ getSectionSubTotal("income", month) }}
+          </td>
+        </tr>
+      </tbody>
+
+      <!-- Table Body - Expenses Section -->
+      <tbody>
+        <tr class="bg-red-50">
+          <td
+            [attr.colspan]="months().length + 1"
+            class="border border-gray-300 px-4 py-2 font-bold"
+          >
+            Expenses
+          </td>
+        </tr>
+
+        <!-- Expense Category Groups -->
+        <ng-container
+          *ngFor="
+            let group of budgetData().expenses.categoryGroups;
+            trackBy: trackByFn
+          "
+        >
+          <tr class="bg-red-50">
+            <td class="border border-gray-300 px-4 py-2 font-medium">
+              {{ group.name }}
+            </td>
+            <td
+              *ngFor="let month of months()"
+              class="border border-gray-300 px-4 py-2 text-right"
+            >
+              <!-- Empty header cell -->
+            </td>
+          </tr>
+
+          <!-- Expense Sub-Categories -->
+          <tr
+            *ngFor="let subCategory of group.subCategories; trackBy: trackByFn"
+            class="hover:bg-gray-50"
+          >
+            <td
+              class="border border-gray-300 px-8 py-2 flex items-center justify-between"
+            >
+              <span>{{ subCategory.name }}</span>
+              <button
+                (click)="
+                  deleteSubCategory('expenses', group.id, subCategory.id)
+                "
+                class="text-red-500 hover:text-red-700"
+                title="Delete"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </td>
+            <td
+              *ngFor="let month of months(); let colIndex = index"
+              class="border border-gray-300 p-1 text-right"
+              (contextmenu)="
+                onCellRightClick(
+                  $event,
+                  'expenses',
+                  group.id,
+                  subCategory.id,
+                  month,
+                  subCategory.values[month]
+                )
+              "
+            >
+              <input
+                type="number"
+                [id]="
+                  'expenses-' + group.id + '-' + subCategory.id + '-' + month
+                "
+                [value]="subCategory.values[month]"
+                (input)="
+                  updateCellValue(
+                    'expenses',
+                    group.id,
+                    subCategory.id,
+                    month,
+                    $event
+                  )
+                "
+                (focus)="focusCellByElement($any($event.target))"
+                class="w-full text-right py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                step="1"
+              />
+            </td>
+          </tr>
+
+          <!-- Add New Expense Category -->
+          <tr *ngIf="editingNewCategory() === 'expenses-' + group.id">
+            <td class="border border-gray-300 px-8 py-2">
+              <div class="flex">
+                <input
+                  #newCategoryInput
+                  type="text"
+                  [value]="newCategoryName()"
+                  (input)="newCategoryName.set($any($event.target).value)"
+                  class="flex-grow border border-gray-300 rounded-md p-1 mr-2"
+                  placeholder="New category name"
+                />
+                <button
+                  (click)="addNewCategory('expenses', group.id)"
+                  class="bg-green-500 text-white px-2 py-1 rounded-md hover:bg-green-600"
+                >
+                  Add
+                </button>
+                <button
+                  (click)="cancelAddCategory()"
+                  class="ml-2 bg-gray-300 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+              </div>
+            </td>
+            <td
+              *ngFor="let month of months()"
+              class="border border-gray-300 px-4 py-2"
+            >
+              <!-- Empty cells for new category row -->
+            </td>
+          </tr>
+
+          <!-- Add New Category Button -->
+          <tr *ngIf="editingNewCategory() !== 'expenses-' + group.id">
+            <td class="border border-gray-300 px-8 py-2">
+              <button
+                (click)="editingNewCategory.set('expenses-' + group.id)"
+                class="text-blue-500 hover:text-blue-700 text-sm"
+              >
+                + Add a new '{{ group.name }}' Category
+              </button>
+            </td>
+            <td *ngFor="let month of months()" class="border border-gray-300">
+              <!-- Empty cells -->
+            </td>
+          </tr>
+
+          <!-- Sub Total Row -->
+          <tr class="bg-red-50">
+            <td class="border border-gray-300 px-4 py-2 font-medium">
+              Sub Total
+            </td>
+            <td
+              *ngFor="let month of months()"
+              class="border border-gray-300 px-4 py-2 text-right font-medium"
+            >
+              {{ getCategoryGroupSubTotal(group, month) }}
+            </td>
+          </tr>
+        </ng-container>
+
+        <!-- Add New Parent Category Group -->
+        <tr>
+          <td class="border border-gray-300 px-4 py-2">
+            <div class="flex items-center">
+              <input
+                type="text"
+                [value]="newCategoryGroupName()"
+                (input)="newCategoryGroupName.set($any($event.target).value)"
+                class="flex-grow border border-gray-300 rounded-md p-1 mr-2"
+                placeholder="New category group name"
+              />
+              <button
+                (click)="addNewCategoryGroup('expenses')"
+                class="bg-green-500 text-white px-2 py-1 rounded-md hover:bg-green-600"
+              >
+                Add New Parent Category
+              </button>
+            </div>
+          </td>
+          <td *ngFor="let month of months()" class="border border-gray-300">
+            <!-- Empty cells -->
+          </td>
+        </tr>
+
+        <!-- Expenses Total Row -->
+        <tr class="bg-red-100">
+          <td class="border border-gray-300 px-4 py-2 font-bold">
+            Total Expenses
+          </td>
+          <td
+            *ngFor="let month of months()"
+            class="border border-gray-300 px-4 py-2 text-right font-bold"
+          >
+            {{ getSectionSubTotal("expenses", month) }}
+          </td>
+        </tr>
+      </tbody>
+
+      <!-- Table Footer - Balance Information -->
+      <tfoot>
+        <tr class="bg-green-100">
+          <td class="border border-gray-300 px-4 py-2 font-bold">
+            Profit / Loss
+          </td>
+          <td
+            *ngFor="let balance of monthlyBalances(); let i = index"
+            class="border border-gray-300 px-4 py-2 text-right font-bold"
+            [ngClass]="{
+              'text-green-600': balance.profit > 0,
+              'text-red-600': balance.profit < 0
+            }"
+          >
+            {{ balance.profit }}
+          </td>
+        </tr>
+        <tr>
+          <td class="border border-gray-300 px-4 py-2 font-medium">
+            Opening Balance
+          </td>
+          <td
+            *ngFor="let balance of monthlyBalances()"
+            class="border border-gray-300 px-4 py-2 text-right"
+          >
+            {{ balance.openingBalance }}
+          </td>
+        </tr>
+        <tr class="bg-yellow-50">
+          <td class="border border-gray-300 px-4 py-2 font-bold">
+            Closing Balance
+          </td>
+          <td
+            *ngFor="let balance of monthlyBalances()"
+            class="border border-gray-300 px-4 py-2 text-right font-bold"
+            [ngClass]="{
+              'text-green-600': balance.closingBalance > 0,
+              'text-red-600': balance.closingBalance < 0
+            }"
+          >
+            {{ balance.closingBalance }}
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Context Menu -->
+  <app-context-menu
+    *ngIf="showContextMenu()"
+    [position]="contextMenuPosition()"
+    [isVisible]="showContextMenu()"
+    (apply)="onApplyToAll($event)"
+    (close)="closeContextMenu()"
+  ></app-context-menu>
+</div>
