@@ -6,7 +6,6 @@ import { BudgetBuilderComponent } from './components/budget-builder/budget-build
   selector: 'app-root',
   imports: [CommonModule, BudgetBuilderComponent],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.css',
 })
 export class AppComponent {
   title = 'budget-builder-table';

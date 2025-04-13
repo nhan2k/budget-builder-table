@@ -9,7 +9,6 @@ export interface CategoryGroup {
   id: string;
   name: string;
   subCategories: SubCategory[];
-  values?: Record<string, number>; // Direct values for the group
 }
 
 export interface BudgetSection {

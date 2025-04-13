@@ -1,13 +1,13 @@
+import { CommonModule } from '@angular/common';
 import {
   Component,
   ElementRef,
   EventEmitter,
   Input,
-  Output,
-  OnInit,
   OnDestroy,
+  OnInit,
+  Output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ContextMenuPosition } from '../../models/budget.model';
 
 @Component({
