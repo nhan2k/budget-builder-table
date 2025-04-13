@@ -22,20 +22,24 @@ export class ContextMenuComponent implements OnInit, OnDestroy {
   @Output() apply = new EventEmitter<ContextMenuPosition>();
   @Output() close = new EventEmitter<void>();
 
-  constructor(private elementRef: ElementRef) {}
+  private clickHandler: (event: MouseEvent) => void;
+
+  constructor(private elementRef: ElementRef) {
+    this.clickHandler = this.handleClickOutside.bind(this);
+  }
 
   ngOnInit() {
-    document.addEventListener('click', this.handleClickOutside.bind(this));
+    document.addEventListener('click', this.clickHandler);
   }
 
   ngOnDestroy() {
-    document.removeEventListener('click', this.handleClickOutside.bind(this));
+    document.removeEventListener('click', this.clickHandler);
   }
 
-  handleClickOutside(event: MouseEvent) {
+  private handleClickOutside(event: MouseEvent) {
     if (
       this.isVisible &&
-      !this.elementRef.nativeElement.contains(event.target)
+      !this.elementRef.nativeElement.contains(event.target as Node)
     ) {
       this.close.emit();
     }

@@ -1,3 +1,9 @@
+/**
+ * BudgetService
+ *
+ * This service manages the budget data and provides methods for manipulating it.
+ * It handles initialization, updates, calculations, and structural changes to the budget.
+ */
 import { Injectable, signal } from '@angular/core';
 import {
   BudgetData,
@@ -35,6 +41,10 @@ export class BudgetService {
     this.calculateBalances();
   }
 
+  /**
+   * Initializes the budget data structure with default values
+   * Creates the initial category groups, subcategories, and date range
+   */
   private getInitialBudgetData(): BudgetData {
     const startMonth = new Date(2024, 0, 1);
     const endMonth = new Date(2024, 11, 31);
@@ -226,6 +236,14 @@ export class BudgetService {
     }
   }
 
+  /**
+   * Updates the value of a specific cell in the budget table
+   * @param sectionId - The ID of the section (income or expenses)
+   * @param groupId - The ID of the category group
+   * @param subCategoryId - The ID of the subcategory
+   * @param month - The month key (e.g., '2024-01')
+   * @param value - The new value to set
+   */
   updateCellValue(
     sectionId: string,
     groupId: string,
@@ -335,6 +353,11 @@ export class BudgetService {
     this.calculateBalances();
   }
 
+  /**
+   * Calculates the monthly balances (income - expenses) for each month
+   * Updates the monthlyBalances signal with the new values
+   * Tracks opening balance, income, expenses, profit, and closing balance for each month
+   */
   calculateBalances(): void {
     const balances: MonthlyBalance[] = [];
     const months = this.months();

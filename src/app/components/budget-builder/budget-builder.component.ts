@@ -1,3 +1,10 @@
+/**
+ * BudgetBuilderComponent
+ *
+ * The main component that renders the budget table and handles user interactions.
+ * It provides a tabular interface for viewing and editing budget data, with features
+ * for keyboard navigation, input validation, and dynamic category management.
+ */
 import { CommonModule } from '@angular/common';
 import {
   Component,
@@ -53,6 +60,11 @@ export class BudgetBuilderComponent implements OnInit {
     }, 100);
   }
 
+  /**
+   * Builds a grid representation of all input cells in the table
+   * This is used for keyboard navigation between cells
+   * @returns A 2D array of input elements organized by row and column
+   */
   private buildNavigationGrid(): { element: HTMLInputElement; id: string }[][] {
     const grid: { element: HTMLInputElement; id: string }[][] = [];
     const inputs = document.querySelectorAll('table input[type="number"]');
@@ -122,6 +134,11 @@ export class BudgetBuilderComponent implements OnInit {
     return this.focusCellById(element.id);
   }
 
+  /**
+   * Navigates to an adjacent cell in the specified direction
+   * @param direction - The direction to navigate (up, down, left, right)
+   * @returns True if navigation was successful, false otherwise
+   */
   navigateToAdjacentCell(direction: 'up' | 'down' | 'left' | 'right'): boolean {
     const grid = this.buildNavigationGrid();
     const rowIndex = this.activeRowIndex();
@@ -260,6 +277,7 @@ export class BudgetBuilderComponent implements OnInit {
       subCategoryId,
       position.value
     );
+    this.closeContextMenu();
   }
 
   closeContextMenu() {
@@ -357,6 +375,10 @@ export class BudgetBuilderComponent implements OnInit {
     return item.id || index;
   }
 
+  /**
+   * Validates number input to prevent negative values and invalid characters
+   * @param event - The keyboard event to validate
+   */
   validateNumberInput(event: KeyboardEvent) {
     const invalidChars = ['e', 'E', '-'];
     if (invalidChars.includes(event.key)) {
@@ -364,6 +386,11 @@ export class BudgetBuilderComponent implements OnInit {
     }
   }
 
+  /**
+   * Handles paste events to sanitize pasted content
+   * Removes invalid characters like 'e', 'E', and '-' from pasted text
+   * @param event - The clipboard event to handle
+   */
   handlePaste(event: ClipboardEvent) {
     const clipboardData = event.clipboardData;
     if (!clipboardData) return;
